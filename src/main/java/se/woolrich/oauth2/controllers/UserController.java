@@ -10,6 +10,7 @@ import se.woolrich.mongo.User;
 import se.woolrich.oauth2.services.UserService;
 
 import java.security.Principal;
+import java.util.function.Consumer;
 
 @RestController
 public class UserController {
@@ -19,10 +20,19 @@ public class UserController {
 
     @PreAuthorize("hasRole('REGISTER')")
     @PostMapping("/api/user/register")
-    public ResponseEntity<User> registerAccount(@RequestBody User user) {
+    public ResponseEntity<User> registerUser(@RequestBody User user) {
         user = userService.registerUser(user);
         return new ResponseEntity<>(user, HttpStatus.CREATED);
     }
+
+//    @PreAuthorize("hasRole('REGISTER')")
+    @GetMapping("/api/user")
+    public ResponseEntity<User> getUser(@RequestParam String username) {
+        User user = userService.findUserByUsername(username);
+        return new ResponseEntity<>(user, HttpStatus.CREATED);
+    }
+
+
 
     @PreAuthorize("isFullyAuthenticated()")
     @DeleteMapping("/api/user/remove")

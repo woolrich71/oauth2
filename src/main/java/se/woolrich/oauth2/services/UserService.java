@@ -43,6 +43,8 @@ public class UserService implements UserDetailsService {
         }
     }
 
+
+
     public User registerUser(User user) {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
             user.grantAuthority(Role.ROLE_USER);

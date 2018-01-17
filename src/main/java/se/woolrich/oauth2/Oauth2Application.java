@@ -1,5 +1,6 @@
 package se.woolrich.oauth2;
 
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -11,6 +12,7 @@ import se.woolrich.mongo.Position;
 import se.woolrich.mongo.Role;
 import se.woolrich.mongo.User;
 import se.woolrich.oauth2.repository.UserRepository;
+import se.woolrich.oauth2.security.AuthorizationConfig;
 import se.woolrich.oauth2.services.UserService;
 
 import java.net.InetAddress;
@@ -18,6 +20,8 @@ import java.net.InetAddress;
 @SpringBootApplication
 @EnableAutoConfiguration
 public class Oauth2Application implements CommandLineRunner  {
+
+	Logger logger = Logger.getLogger(Oauth2Application.class);
 
 	@Bean
 	public BCryptPasswordEncoder passwordEncoder(){
@@ -56,5 +60,9 @@ public class Oauth2Application implements CommandLineRunner  {
 			userService.registerUser(user);
 		}
 		userRepository.findAll();
+
+
+		InetAddress localHost = InetAddress.getLocalHost();
+		logger.warn("Current IP address : " + localHost.getHostAddress());
 	}
 }

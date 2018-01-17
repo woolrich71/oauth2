@@ -1,0 +1,20 @@
+version: '2'
+services:
+  server:
+      image: woolrich71/oauth2:latest
+      environment:
+        - spring.data.mongodb.uri=mongodb://mongodb:27017/oauth2
+      ports:
+          - 8080:8080
+      links:
+          - mongodb
+      depends_on:
+          - mongodb
+  mongodb:
+    image: mongo:latest
+    volumes:
+      - mongodata:/data/db
+    ports:
+      -  27017:27017
+volumes:
+  mongodata:
