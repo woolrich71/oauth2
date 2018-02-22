@@ -1,80 +1,97 @@
 package se.woolrich.bean;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.function.BiConsumer;
 
 public class Util {
 
 
-    enum resolver {
-        id((b, o) -> b.id = Util.getLong(o))
-        ,type((b, o) -> b.type = Util.getType(o))
-        ,name((b, o) -> b.name = Util.getString(o))
+    enum SQLMapper {
+        id((ps, o, idx) ->  Util.setLong(ps, o.id, idx), (rs, o, name) -> o.id = Util.getLong(rs, name)),
+        type((ps, o, idx) ->  Util.setType(ps, o.type, idx), (rs, o, name) -> o.type = Util.getType(rs, name)),
+        name((ps, o, idx) -> Util.setString(ps, o.name, idx), (rs, o, name) -> o.name = Util.getString(rs, name))
         ;
 
-        BiConsumer<Bean, Object> setter;
+        TriConsumer<PreparedStatement, Bean, Integer> prepare;
+        TriConsumer<ResultSet, Bean, String> resolver;
 
-        resolver(BiConsumer<Bean,Object> setter) {
-            this.setter = setter;
+        SQLMapper(ThrowingConsumer<PreparedStatement, Bean, Integer, Exception> prepare
+                , ThrowingConsumer<ResultSet, Bean, String, Exception> resolver) {
+            this.prepare = throwing(prepare);
+            this.resolver = throwing(resolver);
         }
 
-        void set(Bean b, HashMap<String, Object> map) {
-            setter.accept(b, map.get(toString()));
+        void prepare(PreparedStatement ps, Bean b)   {
+            prepare.accept(ps, b,  ordinal());
+        }
+
+        void resolve(ResultSet rs, Bean b) {
+            resolver.accept(rs, b, toString() );
         }
     }
+
 
 
     class Bean {
         Long id;
         Class type;
         String name;
-        public Long getId() {
-            return id;
-        }
-
-        public Class getType() {
-            return type;
-        }
-
-        public String getName() {
-            return name;
-        }
     }
 
 
     public static void main(String[] args) {
         Util util = new Util();
+        util.prepare();
         util.resolve();
     }
 
-    void resolve() {
-        HashMap<String, Object >  map = new HashMap<>();
-        map.put("id", 3L);
-        map.put("type", Integer.class);
-        map.put("name", "int");
-
-
+    void prepare() {
         Bean b = new Bean();
-        Arrays.stream(resolver.values())
-                .forEach(x -> x.set(b, map));
+        Arrays.stream(SQLMapper.values())
+                .forEach(x -> x.prepare(null, b));
+    }
 
-        assert(b.getId() == map.get("id"));
-        assert(b.getType() == map.get("type"));
-        assert(b.getName().equals(map.get("name")));
+    void resolve() {
+        ResultSet rs = null;
+        Bean b = new Bean();
+        Arrays.stream(SQLMapper.values())
+                .forEach(x -> x.resolve(null, b));
 
     }
 
-    static Long getLong(Object o) {
-        return (Long)o;
+    static void setLong(PreparedStatement ps , Long lng, Integer idx) throws SQLException {}
+    static Long getLong(ResultSet o, String name) throws SQLException { return 1L; }
+
+    static String getString(ResultSet rs, String name) {
+        return name;
+    }
+    static void setString(PreparedStatement ps , String o, Integer idx) throws SQLException {}
+
+    static Class getType(ResultSet rs, String name) { return name.getClass(); }
+    static void setType(PreparedStatement ps , Class o, Integer idx) throws SQLException {}
+
+
+
+
+    static <T, U, V> TriConsumer<T, U, V> throwing(ThrowingConsumer<T, U, V, Exception> throwing) {
+        return (a, b, c) -> {
+            try {
+                throwing.accept(a, b, c);
+            } catch(Exception e) {
+                throw new RuntimeException(e);
+            }
+        };
     }
 
-    static String getString(Object o) {
-        return (String)o;
+    @FunctionalInterface
+    interface ThrowingConsumer<T, U, V, E extends Exception> {
+        void accept(T t, U u, V v) throws E;
     }
 
-    static Class getType(Object o) {
-        return (Class)o;
+    @FunctionalInterface
+    interface TriConsumer<T, U, V> {
+        public void accept(T t, U u, V v);
     }
-
 }
