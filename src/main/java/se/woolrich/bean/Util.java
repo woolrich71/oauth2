@@ -8,6 +8,12 @@ import java.util.Arrays;
 public class Util {
 
 
+    private static final SQLMapper[] _VALUES = SQLMapper.values();
+
+    public Bean bean() {
+        return new Bean();
+    }
+
     enum SQLMapper {
         id((ps, o, idx) ->  Util.setLong(ps, o.id, idx), (rs, o, name) -> o.id = Util.getLong(rs, name)),
         type((ps, o, idx) ->  Util.setType(ps, o.type, idx), (rs, o, name) -> o.type = Util.getType(rs, name)),
@@ -15,12 +21,12 @@ public class Util {
         ;
 
         TriConsumer<PreparedStatement, Bean, Integer> prepare;
-        TriConsumer<ResultSet, Bean, String> resolver;
+        TriConsumer<ResultSet, Bean, String> resolve;
 
         SQLMapper(ThrowingConsumer<PreparedStatement, Bean, Integer, Exception> prepare
                 , ThrowingConsumer<ResultSet, Bean, String, Exception> resolver) {
             this.prepare = throwing(prepare);
-            this.resolver = throwing(resolver);
+            this.resolve = throwing(resolver);
         }
 
         void prepare(PreparedStatement ps, Bean b)   {
@@ -28,38 +34,46 @@ public class Util {
         }
 
         void resolve(ResultSet rs, Bean b) {
-            resolver.accept(rs, b, toString() );
+            resolve.accept(rs, b, toString() );
         }
     }
 
+    public void prepare(Bean b, PreparedStatement ps) {
+        Arrays.stream(_VALUES)
+                .forEach(x -> x.prepare(ps, b));
+    }
 
+    public void resolve(Bean b, ResultSet rs) {
+        Arrays.stream(_VALUES)
+                .forEach(x -> x.resolve(rs, b));
+    }
 
-    class Bean {
+    public void resolveImperative(Bean b, ResultSet rs) {
+        try {
+            b.id =  Util.getLong(rs, "id");
+            b.type =  Util.getType(rs, "type");
+            b.name =  Util.getString(rs, "Name");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void prepareImperative(Bean b, PreparedStatement ps) {
+        try {
+            Util.setLong(ps, b.id, 1);
+            Util.setType(ps, b.type, 2);
+            Util.setString(ps, b.name, 3);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public class Bean {
         Long id;
         Class type;
         String name;
     }
 
-
-    public static void main(String[] args) {
-        Util util = new Util();
-        util.prepare();
-        util.resolve();
-    }
-
-    void prepare() {
-        Bean b = new Bean();
-        Arrays.stream(SQLMapper.values())
-                .forEach(x -> x.prepare(null, b));
-    }
-
-    void resolve() {
-        ResultSet rs = null;
-        Bean b = new Bean();
-        Arrays.stream(SQLMapper.values())
-                .forEach(x -> x.resolve(null, b));
-
-    }
 
     static void setLong(PreparedStatement ps , Long lng, Integer idx) throws SQLException {}
     static Long getLong(ResultSet o, String name) throws SQLException { return 1L; }
@@ -92,6 +106,6 @@ public class Util {
 
     @FunctionalInterface
     interface TriConsumer<T, U, V> {
-        public void accept(T t, U u, V v);
+        void accept(T t, U u, V v);
     }
 }

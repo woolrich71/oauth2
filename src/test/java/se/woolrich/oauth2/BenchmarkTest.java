@@ -2,6 +2,7 @@ package se.woolrich.oauth2;
 
 
 import org.openjdk.jmh.annotations.*;
+import se.woolrich.bean.Util;
 
 import java.util.Map;
 import java.util.UUID;
@@ -19,6 +20,7 @@ import java.util.stream.IntStream;
 
 public class BenchmarkTest {
 
+    public static final int INT = 100000;
     private Logger logger = Logger.getLogger(this.getClass().getName());
 
 
@@ -31,7 +33,7 @@ public class BenchmarkTest {
         return n * 2;
     }
 
-    @Benchmark
+    //@Benchmark
     public int doubleAndSumSequential() {
         cache = new ConcurrentHashMap<>();
         return IntStream.of(3, 1, 4, 1, 5, 9)
@@ -39,13 +41,53 @@ public class BenchmarkTest {
                 .sum();
     }
 
-    @Benchmark
+    //@Benchmark
     public int doubleAndSumParallel() {
         cache = new ConcurrentHashMap<>();
         return IntStream.of(3, 1, 4, 1, 5, 9)
                 .parallel()
                 .map(e -> getUUid(e).getNow("").length())
                 .sum();
+    }
+/*
+    INT = 100000
+    Benchmark                        Mode  Cnt  Score    Error  Units
+    BenchmarkTest.prepare            avgt   40  5.100 ±  0.069  ms/op
+    BenchmarkTest.prepareImperative  avgt   40  0.395 ±  0.004  ms/op
+    BenchmarkTest.resolve            avgt   40  4.920 ±  0.056  ms/op
+    BenchmarkTest.resolveImperative  avgt   40  0.002 ±  0.001  ms/op
+*/
+
+    @Benchmark
+    public void resolve() {
+        Util util = new Util();
+        for(int i = 0; i < INT; i++)
+            util.resolve( util.bean(), null);
+
+    }
+
+    @Benchmark
+    public void resolveImperative() {
+        Util util = new Util();
+        for(int i = 0; i <INT; i++)
+            util.resolveImperative( util.bean(), null);
+
+    }
+
+    @Benchmark
+    public void prepareImperative() {
+        Util util = new Util();
+        for(int i = 0; i <INT; i++)
+            util.prepareImperative( util.bean(), null);
+
+    }
+
+    @Benchmark
+    public void prepare() {
+        Util util = new Util();
+        for(int i = 0; i <INT; i++)
+            util.prepare( util.bean(), null);
+
     }
 
 
